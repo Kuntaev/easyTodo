@@ -13,7 +13,11 @@ const Todo = ({ todo, onDelete, onComplete, onEdit }) => {
         {todo.title}
       </div>
       <button onClick={() => onDelete(todo.id)}>X</button>
-      <input type="checkbox" onClick={() => onComplete(todo.id)} />
+      <input
+        type="checkbox"
+        checked={todo.isCompleted && true}
+        onClick={() => onComplete(todo.id)}
+      />
       <button onClick={() => onEdit(todo.id)}>Edit</button>
     </div>
   );

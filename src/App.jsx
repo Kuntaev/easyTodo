@@ -2,54 +2,86 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import Todo from "./components/Todo";
 import Form from "./components/Form";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  addTodos,
+  deleteAll,
+  deleteTodo,
+  editTodo,
+  toggleEdit,
+} from "./Features/TodoSlice/TodoReducer";
+import { minus, plus, reset } from "./Features/CountSlice/CountReducer";
 
-const LOCAL_STORAGE_KEY = "todo:saveTodos";
+// const LOCAL_STORAGE_KEY = "todo:saveTodos";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [todos, setTodos] = useState([]);
+  // const [count, setCount] = useState(0);
+  // const [todos, setTodos] = useState([]);
   const [title, setTitle] = useState("");
   const [editId, setEditId] = useState(0);
 
-  useEffect(() => {
-    loadSavedTodos();
-  }, []);
+  const dispatch = useDispatch();
+  const todoss = useSelector((state) => state.todos);
+  const count = useSelector((state) => state.count);
+
+  // useEffect(() => {
+  //   loadSavedTodos();
+  // }, []);
 
   const handlePlus = () => {
-    setCount(count + 1);
+    dispatch(plus());
   };
   function handleMinus() {
-    count <= 0 ? count : setCount(count - 1);
+    dispatch(minus());
+  }
+
+  function handleReset() {
+    dispatch(reset());
   }
 
   const handleAddTodos = () => {
-    const filteredTodos = todos.filter((todo) => todo.title === title);
-
-    const filteredTodosAll =
-      filteredTodos.length != true && title.trim("") !== "";
-    if (filteredTodosAll) {
-      setTodosAndSave([
-        ...todos,
-        {
-          title: title,
-          id: crypto.randomUUID(),
-          isCompleted: false,
-        },
-      ]);
+    if (editId) {
+      dispatch(editTodo({ title: title, id: editId }));
       setTitle("");
-      if (editId) {
-        const updatedTodos = todos.map((todo) =>
-          todo.id === editId ? (todo = { ...todo, title }) : todo
-        );
-        setTodosAndSave(updatedTodos);
-        setEditId(0);
-        return;
-      }
-    } else return alert("U cant add that!");
+    } else {
+      const newTodo = {
+        id: crypto.randomUUID(),
+        title: title,
+        isCompleted: false,
+      };
+      dispatch(addTodos(newTodo));
+      setTitle("");
+      setEditId(0);
+    }
+
+    // const filteredTodos = todos.filter((todo) => todo.title === title);
+
+    // const filteredTodosAll =
+    //   filteredTodos.length != true && title.trim("") !== "";
+    // if (filteredTodosAll) {
+    //   setTodosAndSave([
+    //     ...todos,
+    //     {
+    //       title: title,
+    //       id: crypto.randomUUID(),
+    //       isCompleted: false,
+    //     },
+    //   ]);
+    //   setTitle("");
+    //   if (editId) {
+    //     const updatedTodos = todos.map((todo) =>
+    //       todo.id === editId ? (todo = { ...todo, title }) : todo
+    //     );
+    //     setTodosAndSave(updatedTodos);
+    //     setEditId(0);
+    //     return;
+    //   }
+    // } else return alert("U cant add that!");
   };
 
   const handleDeleteAll = () => {
-    setTodosAndSave([]);
+    dispatch(deleteAll());
+    setTitle("");
   };
 
   const handleChange = (event) => {
@@ -57,36 +89,38 @@ function App() {
   };
 
   const handleComplete = (id) => {
-    setTodos(
-      todos.map((todo) => {
-        if (todo.id === id) {
-          return {
-            ...todo,
-            isCompleted: !todo.isCompleted,
-          };
-        }
-        return todo;
-      })
-    );
+    // setTodos(
+    //   todos.map((todo) => {
+    //     if (todo.id === id) {
+    //       return {
+    //         ...todo,
+    //         isCompleted: !todo.isCompleted,
+    //       };
+    //     }
+    //     return todo;
+    //   })
+    // );
+    dispatch(toggleEdit({ id }));
   };
 
   const handleDelete = (id) => {
-    const newTodos = todos.filter((todo) => todo.id != id);
-    setTodosAndSave(newTodos);
+    // const newTodos = todos.filter((todo) => todo.id != id);
+    // setTodosAndSave(newTodos);
+    dispatch(deleteTodo({ id }));
   };
 
-  const setTodosAndSave = (newTodos) => {
-    setTodos(newTodos);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTodos));
-  };
+  // const setTodosAndSave = (newTodos) => {
+  //   setTodos(newTodos);
+  //   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTodos));
+  // };
 
-  const loadSavedTodos = () => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    saved && setTodos(JSON.parse(saved));
-  };
+  // const loadSavedTodos = () => {
+  //   const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  //   saved && setTodos(JSON.parse(saved));
+  // };
 
   const handleEdit = (id) => {
-    const editTodo = todos.find((todo) => todo.id === id);
+    const editTodo = todoss.find((todo) => todo.id === id);
     setTitle(editTodo.title);
     setEditId(id);
   };
@@ -101,6 +135,7 @@ function App() {
         <button onClick={handlePlus}>Plus</button>
         <div>{count}</div>
         <button onClick={handleMinus}>Minus</button>
+        <button onClick={handleReset}>Reset</button>
       </div>
       <div>
         <Form
@@ -112,7 +147,7 @@ function App() {
         />
       </div>
       <div>
-        {todos.map((todo) => (
+        {todoss.map((todo) => (
           <Todo
             key={todo.id}
             todo={todo}
