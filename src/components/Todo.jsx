@@ -1,6 +1,22 @@
 import React from "react";
+import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
+import {
+  fetchDelete,
+  fetchTodos,
+  fetchToggle,
+} from "../Features/TodoSlice/TodoReducer";
 
-const Todo = ({ todo, onDelete, onComplete, onEdit }) => {
+const Todo = ({ todo }) => {
+  const handleDelete = async (id) => {
+    await dispatch(fetchDelete({ id }));
+    dispatch(fetchTodos());
+  };
+  const dispatch = useDispatch();
+  const handleComplete = async (id) => {
+    await dispatch(fetchToggle({ id }));
+    dispatch(fetchTodos());
+  };
   return (
     <div>
       <div
@@ -12,13 +28,15 @@ const Todo = ({ todo, onDelete, onComplete, onEdit }) => {
       >
         {todo.title}
       </div>
-      <button onClick={() => onDelete(todo.id)}>X</button>
+      <button onClick={() => handleDelete(todo._id)}>X</button>
       <input
         type="checkbox"
-        checked={todo.isCompleted && true}
-        onClick={() => onComplete(todo.id)}
+        defaultChecked={todo.isCompleted && true}
+        onClick={() => handleComplete(todo._id)}
       />
-      <button onClick={() => onEdit(todo.id)}>Edit</button>
+      <Link to={`/edit/${todo._id}`}>
+        <button>Edit</button>
+      </Link>
     </div>
   );
 };

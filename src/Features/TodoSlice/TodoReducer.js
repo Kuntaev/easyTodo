@@ -1,44 +1,142 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { asyncThunkCreator, buildCreateSlice, nanoid } from "@reduxjs/toolkit";
+import axios from "axios";
 
-const todos = JSON.parse(localStorage.getItem("todos")) || [];
-const todoSlice = createSlice({
+const createSliceWithThunks = buildCreateSlice({
+  creators: { asyncThunk: asyncThunkCreator },
+});
+const todoSlice = createSliceWithThunks({
   name: "todos",
-  initialState: todos,
-  reducers: {
-    addTodos: (state, action) => {
-      state.push(action.payload);
-      localStorage.setItem("todos", JSON.stringify(state));
-    },
-    deleteTodo: (state, action) => {
-      localStorage.setItem(
-        "todos",
-        JSON.stringify(state.filter((todo) => todo.id != action.payload.id))
-      );
-      return state.filter((todo) => todo.id != action.payload.id);
-    },
-    editTodo: (state, action) => {
-      const { id, title } = action.payload;
-      const editTodo = state.find((todo) => todo.id === id);
-      if (editTodo) {
-        editTodo.title = title;
+  initialState: { todos: [], error: null, loading: false },
+  reducers: (create) => ({
+    fetchAdd: create.asyncThunk(
+      async (data, thunkApi) => {
+        await axios.post("http://localhost:5000/todos/new", { ...data });
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+        },
       }
-      localStorage.setItem("todos", JSON.stringify(state));
-    },
-    deleteAll: (state, action) => {
-      localStorage.setItem("todos", JSON.stringify((state = [])));
-      return (state = []);
-    },
-    toggleEdit: (state, action) => {
+    ),
+
+    toggleEdit: create.reducer((state, action) => {
       const { id } = action.payload;
-      const toggleEdit = state.find((todo) => todo.id === id);
+      const toggleEdit = state.todos.find((todo) => todo.id === id);
       if (toggleEdit) {
         toggleEdit.isCompleted = !toggleEdit.isCompleted;
       }
-      localStorage.setItem("todos", JSON.stringify(state));
-    },
-  },
+    }),
+
+    fetchToggle: create.asyncThunk(
+      async (data, thunkApi) => {
+        await axios.patch(`http://localhost:5000/todos/toggle/${data.id}`);
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+        },
+      }
+    ),
+
+    fetchDelete: create.asyncThunk(
+      async (data, thunkApi) => {
+        await axios.delete(`http://localhost:5000/todos/delete/${data.id}`);
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+        },
+      }
+    ),
+
+    fetchDeleteAll: create.asyncThunk(
+      async (data, thunkApi) => {
+        await axios.delete("http://localhost:5000/todos/delete-all");
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+        },
+      }
+    ),
+
+    fetchEdit: create.asyncThunk(
+      async (data, thunkApi) => {
+        const { title } = data;
+        await axios.patch(`http://localhost:5000/todos/update/${data.id}`, {
+          title,
+        });
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+        },
+      }
+    ),
+
+    fetchTodos: create.asyncThunk(
+      async (_, thunkApi) => {
+        const response = await fetch("http://localhost:5000/todos");
+        return await response.json();
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+        },
+        rejected: (state, actions) => {
+          state.loading = false;
+          state.error = actions.payload.error;
+        },
+        fulfilled: (state, actions) => {
+          state.loading = false;
+          state.todos = actions.payload;
+        },
+      }
+    ),
+  }),
 });
 
-export const { addTodos, deleteTodo, editTodo, deleteAll, toggleEdit } =
-  todoSlice.actions;
+export const {
+  fetchDeleteAll,
+  fetchTodos,
+  fetchDelete,
+  fetchAdd,
+  fetchToggle,
+  fetchEdit,
+} = todoSlice.actions;
 export default todoSlice.reducer;
